@@ -1,0 +1,5 @@
+{
+  "version": "1.0.0",
+  "notes": "Первый релиз: рецепты, сканер штрихкодов, холодильник и автообновление.",
+  "android": "https://github.com/romangolotvin/smart-pantry/releases/latest/download/SmartPantry.apk"
+}

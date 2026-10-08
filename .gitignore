@@ -1,0 +1,25 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+.kotlin/
+build-check*.txt
+build-log.txt
+git-status.txt
+gh-repo.txt
+# Release APK is attached on GitHub Releases, not committed
+/builds/
