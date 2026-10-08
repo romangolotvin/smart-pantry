@@ -5,7 +5,6 @@ import com.smartpantry.app.data.PantryRepository
 import com.smartpantry.app.data.ProductLookupService
 import com.smartpantry.app.data.db.AppDatabase
 import com.smartpantry.app.data.remote.ChestnyZnakClient
-import com.smartpantry.app.data.remote.OpenFoodFactsClient
 import com.smartpantry.app.update.UpdateService
 
 class SmartPantryApplication : Application() {
@@ -24,7 +23,6 @@ class SmartPantryApplication : Application() {
         pantryRepository = PantryRepository(db.pantryDao())
         updateService = UpdateService(this)
         productLookupService = ProductLookupService(
-            foodFactsClient = OpenFoodFactsClient(),
             chestnyZnakClient = ChestnyZnakClient()
         )
     }

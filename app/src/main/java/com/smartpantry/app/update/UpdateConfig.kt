@@ -2,7 +2,7 @@ package com.smartpantry.app.update
 
 object UpdateConfig {
     /** Локальная версия этой сборки. Поднимай при каждом релизе. */
-    const val APP_VERSION = "1.1.1"
+    const val APP_VERSION = "1.2.0"
 
     /**
      * Файл version.json в интернете.

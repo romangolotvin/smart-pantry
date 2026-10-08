@@ -1,5 +1,5 @@
 {
-  "version": "1.1.1",
-  "notes": "Меньше размер APK: убран OCR, только ARM, R8 minify, базовые иконки.",
+  "version": "1.2.0",
+  "notes": "Несколько баз штрихкодов: Open Food Facts RU/World, Beauty/Products Facts, Честный знак (EAN), UPC Item DB — берём первое найденное название.",
   "android": "https://github.com/romangolotvin/smart-pantry/releases/latest/download/SmartPantry.apk"
 }
