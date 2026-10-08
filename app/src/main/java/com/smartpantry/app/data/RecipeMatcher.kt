@@ -14,7 +14,8 @@ object RecipeMatcher {
     ): List<RecipeMatch> {
         val usableNames = pantry
             .filter { it.status(today) != ExpiryStatus.EXPIRED }
-            .map { normalize(it.name) }
+            .map { IngredientNames.baseName(it.name) }
+            .filter { it.isNotBlank() }
             .distinct()
 
         if (usableNames.isEmpty()) return emptyList()
@@ -24,7 +25,11 @@ object RecipeMatcher {
             val missing = mutableListOf<String>()
 
             recipe.ingredients.forEach { ingredient ->
-                val needle = normalize(ingredient)
+                if (PantryStaples.isAlwaysAvailable(ingredient)) {
+                    matched += ingredient
+                    return@forEach
+                }
+                val needle = IngredientNames.baseName(ingredient)
                 val found = usableNames.any { pantryName ->
                     pantryName.contains(needle) || needle.contains(pantryName) ||
                         tokensOverlap(pantryName, needle)
@@ -32,9 +37,18 @@ object RecipeMatcher {
                 if (found) matched += ingredient else missing += ingredient
             }
 
-            if (matched.isEmpty()) return@mapNotNull null
+            // Нужен хотя бы один «настоящий» продукт из холодильника, не только масло/соль/сахар
+            val nonStapleMatched = matched.any { !PantryStaples.isAlwaysAvailable(it) }
+            if (!nonStapleMatched) return@mapNotNull null
 
-            val percent = ((matched.size.toFloat() / recipe.ingredients.size) * 100f).toInt()
+            val required = recipe.ingredients.filterNot { PantryStaples.isAlwaysAvailable(it) }
+            val requiredMatched = required.count { it in matched }
+            val percent = if (required.isEmpty()) {
+                100
+            } else {
+                ((requiredMatched.toFloat() / required.size) * 100f).toInt()
+            }
+
             RecipeMatch(
                 recipe = recipe,
                 matchedIngredients = matched,
@@ -47,13 +61,6 @@ object RecipeMatcher {
                 .thenBy { it.recipe.timeMinutes }
         )
     }
-
-    private fun normalize(value: String): String =
-        value.lowercase()
-            .replace('ё', 'е')
-            .replace(Regex("[^a-zа-я0-9\\s]"), " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
 
     private fun tokensOverlap(a: String, b: String): Boolean {
         val ta = a.split(" ").filter { it.length >= 3 }.toSet()

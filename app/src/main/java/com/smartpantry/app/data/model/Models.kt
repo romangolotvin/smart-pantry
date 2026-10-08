@@ -15,7 +15,9 @@ data class Recipe(
     val tags: List<String>,
     val ingredients: List<String>,
     val steps: List<String>,
-    val accentColor: Long
+    val accentColor: Long,
+    /** Ссылка на видео-рецепт (обычно YouTube). */
+    val videoUrl: String = ""
 )
 
 @Entity(tableName = "pantry_items")

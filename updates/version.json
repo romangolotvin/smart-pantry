@@ -1,5 +1,5 @@
 {
-  "version": "1.2.1",
-  "notes": "Если в названии «овощ» или «фрукт» — окно с названием и весом перед добавлением.",
+  "version": "1.2.2",
+  "notes": "Масло, соль и сахар всегда есть для подбора; граммовка в рецептах; видео «как готовить» в каждом рецепте.",
   "android": "https://github.com/romangolotvin/smart-pantry/releases/latest/download/SmartPantry.apk"
 }

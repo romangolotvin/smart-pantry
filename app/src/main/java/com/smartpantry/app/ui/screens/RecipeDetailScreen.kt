@@ -1,6 +1,9 @@
 package com.smartpantry.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,11 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -29,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartpantry.app.data.model.Recipe
@@ -40,6 +46,8 @@ fun RecipeDetailScreen(
     recipe: Recipe,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -80,11 +88,62 @@ fun RecipeDetailScreen(
                 Chip(recipe.difficulty)
                 recipe.tags.take(2).forEach { Chip(it) }
             }
+
+            if (recipe.videoUrl.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(recipe.videoUrl))
+                            context.startActivity(intent)
+                        },
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                        Spacer(Modifier.size(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Видео: как готовить",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                "Откроется на YouTube",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
             Text("Ингредиенты", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(10.dp))
             recipe.ingredients.forEach { item ->
-                Text("•  $item", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 3.dp))
+                Text(
+                    "•  $item",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
             }
             Spacer(Modifier.height(24.dp))
             Text("Как готовить", style = MaterialTheme.typography.headlineMedium)
