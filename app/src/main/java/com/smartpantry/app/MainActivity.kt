@@ -6,9 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Kitchen
-import androidx.compose.material.icons.filled.LocalDining
-import androidx.compose.material.icons.filled.RestaurantMenu
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -79,9 +79,9 @@ private fun SmartPantryRoot(
     var manualCheck by remember { mutableStateOf(false) }
 
     val tabs = listOf(
-        Tab(Routes.RECIPES, "Рецепты", Icons.Default.RestaurantMenu),
-        Tab(Routes.PANTRY, "Холодильник", Icons.Default.Kitchen),
-        Tab(Routes.COOKABLE, "Готовим", Icons.Default.LocalDining)
+        Tab(Routes.RECIPES, "Рецепты", Icons.Default.List),
+        Tab(Routes.PANTRY, "Холодильник", Icons.Default.Home),
+        Tab(Routes.COOKABLE, "Готовим", Icons.Default.Favorite)
     )
     val showBottomBar = currentRoute in tabs.map { it.route }
 

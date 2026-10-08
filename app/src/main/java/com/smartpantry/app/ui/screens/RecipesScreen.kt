@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,7 +49,7 @@ fun RecipesScreen(
                 modifier = Modifier.padding(start = 4.dp)
             )
             TextButton(onClick = onCheckUpdates) {
-                Icon(Icons.Default.SystemUpdate, contentDescription = null)
+                Icon(Icons.Default.Refresh, contentDescription = null)
                 Text("  Обновления")
             }
         }

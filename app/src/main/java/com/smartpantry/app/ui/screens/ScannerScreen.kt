@@ -42,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -51,17 +50,15 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.smartpantry.app.data.model.ScannedProduct
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.regex.Pattern
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -108,8 +105,7 @@ fun ScannerScreen(
                 cameraPermission.status.isGranted -> {
                     BarcodeCamera(
                         enabled = pendingProduct == null && !busy,
-                        onBarcode = onBarcode,
-                        onDateHint = { /* surfaced in dialog via OCR field */ }
+                        onBarcode = onBarcode
                     )
                 }
                 cameraPermission.status.shouldShowRationale -> {
@@ -185,21 +181,30 @@ private fun PermissionMessage(text: String, onRequest: () -> Unit) {
 @Composable
 private fun BarcodeCamera(
     enabled: Boolean,
-    onBarcode: (String) -> Unit,
-    onDateHint: (LocalDate) -> Unit
+    onBarcode: (String) -> Unit
 ) {
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
     val handled = remember { AtomicBoolean(false) }
-    val barcodeScanner = remember { BarcodeScanning.getClient() }
-    val textRecognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    val barcodeScanner = remember {
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_DATA_MATRIX,
+                Barcode.FORMAT_EAN_13,
+                Barcode.FORMAT_EAN_8,
+                Barcode.FORMAT_UPC_A,
+                Barcode.FORMAT_UPC_E,
+                Barcode.FORMAT_CODE_128,
+                Barcode.FORMAT_QR_CODE
+            )
+            .build()
+        BarcodeScanning.getClient(options)
+    }
 
     DisposableEffect(Unit) {
         onDispose {
             executor.shutdown()
             barcodeScanner.close()
-            textRecognizer.close()
         }
     }
 
@@ -239,29 +244,12 @@ private fun BarcodeCamera(
 
                     barcodeScanner.process(image)
                         .addOnSuccessListener { barcodes ->
-                            val hit = barcodes.firstOrNull {
-                                !it.rawValue.isNullOrBlank() &&
-                                    (it.format == Barcode.FORMAT_DATA_MATRIX ||
-                                        it.format == Barcode.FORMAT_EAN_13 ||
-                                        it.format == Barcode.FORMAT_EAN_8 ||
-                                        it.format == Barcode.FORMAT_UPC_A ||
-                                        it.format == Barcode.FORMAT_UPC_E ||
-                                        it.format == Barcode.FORMAT_CODE_128 ||
-                                        it.format == Barcode.FORMAT_QR_CODE)
-                            }
-                            val value = hit?.rawValue
-                            // Data Matrix «Честный знак» обрабатываем в приоритете.
+                            val value = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
                             if (!value.isNullOrBlank() && handled.compareAndSet(false, true)) {
                                 onBarcode(value)
                             }
                         }
-                        .addOnCompleteListener {
-                            textRecognizer.process(image)
-                                .addOnSuccessListener { visionText ->
-                                    parseExpiryDate(visionText.text)?.let(onDateHint)
-                                }
-                                .addOnCompleteListener { imageProxy.close() }
-                        }
+                        .addOnCompleteListener { imageProxy.close() }
                 }
 
                 try {
@@ -383,44 +371,4 @@ private fun ConfirmScanDialog(
             }
         )
     }
-}
-
-private val DATE_PATTERNS = listOf(
-    Pattern.compile("(\\d{2})[./-](\\d{2})[./-](\\d{4})"),
-    Pattern.compile("(\\d{2})[./-](\\d{2})[./-](\\d{2})"),
-    Pattern.compile("(\\d{4})[./-](\\d{2})[./-](\\d{2})")
-)
-
-fun parseExpiryDate(text: String): LocalDate? {
-    for (pattern in DATE_PATTERNS) {
-        val matcher = pattern.matcher(text)
-        if (matcher.find()) {
-            return try {
-                when (pattern.pattern()) {
-                    DATE_PATTERNS[0].pattern() -> {
-                        val d = matcher.group(1)!!.toInt()
-                        val m = matcher.group(2)!!.toInt()
-                        val y = matcher.group(3)!!.toInt()
-                        LocalDate.of(y, m, d)
-                    }
-                    DATE_PATTERNS[1].pattern() -> {
-                        val d = matcher.group(1)!!.toInt()
-                        val m = matcher.group(2)!!.toInt()
-                        var y = matcher.group(3)!!.toInt()
-                        y += if (y < 100) 2000 else 0
-                        LocalDate.of(y, m, d)
-                    }
-                    else -> {
-                        val y = matcher.group(1)!!.toInt()
-                        val m = matcher.group(2)!!.toInt()
-                        val d = matcher.group(3)!!.toInt()
-                        LocalDate.of(y, m, d)
-                    }
-                }
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }
-    return null
 }

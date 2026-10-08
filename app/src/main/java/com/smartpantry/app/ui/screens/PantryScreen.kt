@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -66,7 +66,7 @@ fun PantryScreen(
                     onClick = onScanClick,
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Сканировать")
+                    Icon(Icons.Default.Search, contentDescription = "Сканировать")
                 }
                 Spacer(Modifier.height(12.dp))
                 FloatingActionButton(
@@ -104,7 +104,7 @@ fun PantryScreen(
                     )
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onScanClick) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                        Icon(Icons.Default.Search, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("Сканировать штрихкод")
                     }

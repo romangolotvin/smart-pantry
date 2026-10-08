@@ -13,19 +13,30 @@ android {
         applicationId = "com.smartpantry.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
         // Держи в синхроне с UpdateConfig.APP_VERSION
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Только ARM — без x86/x86_64 эмуляторных .so (экономия ~30+ МБ)
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Тот же ключ, что у предыдущих APK (debug), чтобы обновление ставилось поверх
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -45,6 +56,13 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE*"
+            excludes += "META-INF/NOTICE*"
+        }
+        jniLibs {
+            // Не дублировать сжатые .so лишний раз
+            useLegacyPackaging = false
         }
     }
 }
@@ -64,7 +82,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
+    // Только базовые иконки — extended раздувает DEX на десятки МБ
+    implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.foundation:foundation")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -78,8 +97,8 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.0")
     implementation("androidx.camera:camera-view:1.4.0")
 
+    // Только штрихкод/Data Matrix. OCR убран — экономия ~40 МБ native libs
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
-    implementation("com.google.mlkit:text-recognition:16.0.1")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
