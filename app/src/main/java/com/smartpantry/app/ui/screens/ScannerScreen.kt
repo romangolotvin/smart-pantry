@@ -133,8 +133,8 @@ fun ScannerScreen(
                     .background(Color.Black.copy(alpha = 0.55f))
                     .padding(20.dp)
             ) {
-                Text(
-                    "Наведите камеру на штрихкод. Затем укажите или распознайте срок годности.",
+                    Text(
+                    "Наведите камеру на штрихкод или Data Matrix «Честный знак». Затем укажите срок годности.",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -239,15 +239,18 @@ private fun BarcodeCamera(
 
                     barcodeScanner.process(image)
                         .addOnSuccessListener { barcodes ->
-                            val value = barcodes.firstOrNull {
+                            val hit = barcodes.firstOrNull {
                                 !it.rawValue.isNullOrBlank() &&
-                                    (it.format == Barcode.FORMAT_EAN_13 ||
+                                    (it.format == Barcode.FORMAT_DATA_MATRIX ||
+                                        it.format == Barcode.FORMAT_EAN_13 ||
                                         it.format == Barcode.FORMAT_EAN_8 ||
                                         it.format == Barcode.FORMAT_UPC_A ||
                                         it.format == Barcode.FORMAT_UPC_E ||
                                         it.format == Barcode.FORMAT_CODE_128 ||
                                         it.format == Barcode.FORMAT_QR_CODE)
-                            }?.rawValue
+                            }
+                            val value = hit?.rawValue
+                            // Data Matrix «Честный знак» обрабатываем в приоритете.
                             if (!value.isNullOrBlank() && handled.compareAndSet(false, true)) {
                                 onBarcode(value)
                             }
@@ -287,7 +290,9 @@ private fun ConfirmScanDialog(
 ) {
     var name by remember(product) { mutableStateOf(product.name) }
     var quantity by remember { mutableStateOf("1") }
-    var expiry by remember { mutableStateOf(LocalDate.now().plusDays(7)) }
+    var expiry by remember(product) {
+        mutableStateOf(product.suggestedExpiry ?: LocalDate.now().plusDays(7))
+    }
     var showDate by remember { mutableStateOf(false) }
     val formatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
@@ -305,6 +310,20 @@ private fun ConfirmScanDialog(
                     else product.imageHint,
                     style = MaterialTheme.typography.bodyMedium
                 )
+                if (product.source.isNotBlank()) {
+                    Text(
+                        "Источник: ${product.source}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (product.statusLabel.isNotBlank()) {
+                    Text(
+                        "Статус маркировки: ${product.statusLabel}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = name,
@@ -321,7 +340,11 @@ private fun ConfirmScanDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Штрихкод: ${product.barcode}",
+                    if (product.markingCode.isNotBlank()) {
+                        "Код: ${product.barcode}"
+                    } else {
+                        "Штрихкод: ${product.barcode}"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -329,7 +352,11 @@ private fun ConfirmScanDialog(
                     Text("Срок годности: ${expiry.format(formatter)}")
                 }
                 Text(
-                    "Можно сфотографировать дату на упаковке и выбрать её вручную.",
+                    if (product.suggestedExpiry != null) {
+                        "Срок подставлен из маркировки — при необходимости поправьте."
+                    } else {
+                        "Можно сфотографировать дату на упаковке и выбрать её вручную."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

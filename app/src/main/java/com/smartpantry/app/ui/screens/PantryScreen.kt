@@ -98,7 +98,7 @@ fun PantryScreen(
                     Text("Холодильник пуст", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Нажмите кнопку сканера, чтобы добавить первый продукт.",
+                        "Нажмите кнопку сканера: обычный штрихкод или Data Matrix «Честный знак».",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

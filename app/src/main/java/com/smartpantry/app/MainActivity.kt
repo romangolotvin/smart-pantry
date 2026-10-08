@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartPantryTheme {
                 val vm: AppViewModel = viewModel(
-                    factory = AppViewModel.Factory(app.pantryRepository, app.foodFactsClient)
+                    factory = AppViewModel.Factory(app.pantryRepository, app.productLookupService)
                 )
                 SmartPantryRoot(vm = vm, updateService = app.updateService)
             }

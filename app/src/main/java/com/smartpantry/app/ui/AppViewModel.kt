@@ -4,13 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.smartpantry.app.data.PantryRepository
+import com.smartpantry.app.data.ProductLookupService
 import com.smartpantry.app.data.RecipeCatalog
 import com.smartpantry.app.data.RecipeMatcher
 import com.smartpantry.app.data.model.PantryItem
 import com.smartpantry.app.data.model.Recipe
 import com.smartpantry.app.data.model.RecipeMatch
 import com.smartpantry.app.data.model.ScannedProduct
-import com.smartpantry.app.data.remote.OpenFoodFactsClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +31,7 @@ data class AppUiState(
 
 class AppViewModel(
     private val pantryRepository: PantryRepository,
-    private val foodFactsClient: OpenFoodFactsClient
+    private val productLookupService: ProductLookupService
 ) : ViewModel() {
 
     private val selectedRecipe = MutableStateFlow<Recipe?>(null)
@@ -71,7 +71,7 @@ class AppViewModel(
             scanBusy.value = true
             scanError.value = null
             try {
-                pendingProduct.value = foodFactsClient.lookup(barcode)
+                pendingProduct.value = productLookupService.lookup(barcode)
             } catch (e: Exception) {
                 scanError.value = "Не удалось найти продукт. Можно добавить вручную."
                 pendingProduct.value = ScannedProduct(barcode, "Продукт $barcode", "")
@@ -111,11 +111,11 @@ class AppViewModel(
 
     class Factory(
         private val pantryRepository: PantryRepository,
-        private val foodFactsClient: OpenFoodFactsClient
+        private val productLookupService: ProductLookupService
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return AppViewModel(pantryRepository, foodFactsClient) as T
+            return AppViewModel(pantryRepository, productLookupService) as T
         }
     }
 }

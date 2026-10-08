@@ -60,5 +60,9 @@ data class ScannedProduct(
     val barcode: String,
     val name: String,
     val brand: String,
-    val imageHint: String = "🛒"
+    val imageHint: String = "🛒",
+    val source: String = "",
+    val suggestedExpiry: LocalDate? = null,
+    val statusLabel: String = "",
+    val markingCode: String = ""
 )
