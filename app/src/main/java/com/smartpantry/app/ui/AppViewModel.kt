@@ -86,20 +86,39 @@ class AppViewModel(
         scanError.value = null
     }
 
-    fun confirmPendingProduct(expiry: LocalDate, quantity: String, customName: String?) {
+    fun confirmPendingProduct(
+        expiry: LocalDate,
+        quantity: String,
+        customName: String?,
+        imageHint: String? = null
+    ) {
         val product = pendingProduct.value ?: return
         viewModelScope.launch {
-            val updated = if (!customName.isNullOrBlank()) {
-                product.copy(name = customName.trim())
-            } else product
+            var updated = product
+            if (!customName.isNullOrBlank()) {
+                updated = updated.copy(name = customName.trim())
+            }
+            if (!imageHint.isNullOrBlank()) {
+                updated = updated.copy(imageHint = imageHint)
+            }
             pantryRepository.addScanned(updated, expiry, quantity.ifBlank { "1" })
             pendingProduct.value = null
         }
     }
 
-    fun addManualProduct(name: String, expiry: LocalDate) {
+    fun addManualProduct(
+        name: String,
+        expiry: LocalDate,
+        quantity: String = "1",
+        imageHint: String = "🛒"
+    ) {
         viewModelScope.launch {
-            pantryRepository.addManual(name, expiry)
+            pantryRepository.addManual(
+                name = name,
+                expiry = expiry,
+                quantity = quantity.ifBlank { "1" },
+                imageHint = imageHint
+            )
         }
     }
 

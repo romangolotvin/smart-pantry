@@ -26,7 +26,8 @@ class PantryRepository(private val dao: PantryDao) {
         name: String,
         expiry: LocalDate,
         barcode: String = "",
-        quantity: String = "1"
+        quantity: String = "1",
+        imageHint: String = "🛒"
     ) {
         dao.insert(
             PantryItem(
@@ -34,7 +35,7 @@ class PantryRepository(private val dao: PantryDao) {
                 name = name.trim(),
                 quantity = quantity,
                 expiryDateEpochDay = expiry.toEpochDay(),
-                imageHint = "🛒"
+                imageHint = imageHint
             )
         )
     }

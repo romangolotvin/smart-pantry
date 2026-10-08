@@ -54,6 +54,8 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.smartpantry.app.data.ProduceHelper
+import com.smartpantry.app.data.ProduceKind
 import com.smartpantry.app.data.model.ScannedProduct
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -68,7 +70,7 @@ fun ScannerScreen(
     pendingProduct: ScannedProduct?,
     onBack: () -> Unit,
     onBarcode: (String) -> Unit,
-    onConfirm: (LocalDate, String, String?) -> Unit,
+    onConfirm: (LocalDate, String, String?, String?) -> Unit,
     onClearPending: () -> Unit
 ) {
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
@@ -274,7 +276,7 @@ private fun ConfirmScanDialog(
     product: ScannedProduct,
     error: String?,
     onDismiss: () -> Unit,
-    onConfirm: (LocalDate, String, String?) -> Unit
+    onConfirm: (LocalDate, String, String?, String?) -> Unit
 ) {
     var name by remember(product) { mutableStateOf(product.name) }
     var quantity by remember { mutableStateOf("1") }
@@ -282,84 +284,105 @@ private fun ConfirmScanDialog(
         mutableStateOf(product.suggestedExpiry ?: LocalDate.now().plusDays(7))
     }
     var showDate by remember { mutableStateOf(false) }
+    var produceKind by remember { mutableStateOf<ProduceKind?>(null) }
     val formatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Продукт найден") },
-        text = {
-            Column {
-                if (!error.isNullOrBlank()) {
-                    Text(error, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(8.dp))
-                }
-                Text(
-                    if (product.brand.isNotBlank()) "${product.imageHint} ${product.brand}"
-                    else product.imageHint,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (product.source.isNotBlank()) {
+    if (produceKind == null) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Продукт найден") },
+            text = {
+                Column {
+                    if (!error.isNullOrBlank()) {
+                        Text(error, color = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.height(8.dp))
+                    }
                     Text(
-                        "Источник: ${product.source}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        if (product.brand.isNotBlank()) "${product.imageHint} ${product.brand}"
+                        else product.imageHint,
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                }
-                if (product.statusLabel.isNotBlank()) {
+                    if (product.source.isNotBlank()) {
+                        Text(
+                            "Источник: ${product.source}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    if (product.statusLabel.isNotBlank()) {
+                        Text(
+                            "Статус маркировки: ${product.statusLabel}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Название") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = quantity,
+                        onValueChange = { quantity = it },
+                        label = { Text("Количество") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        "Статус маркировки: ${product.statusLabel}",
+                        if (product.markingCode.isNotBlank()) {
+                            "Код: ${product.barcode}"
+                        } else {
+                            "Штрихкод: ${product.barcode}"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(onClick = { showDate = true }) {
+                        Text("Срок годности: ${expiry.format(formatter)}")
+                    }
+                    Text(
+                        if (product.suggestedExpiry != null) {
+                            "Срок подставлен из маркировки — при необходимости поправьте."
+                        } else {
+                            "Можно сфотографировать дату на упаковке и выбрать её вручную. Напишите «овощ» или «фрукт» — спросим название и вес."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Название") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
-                    label = { Text("Количество") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (product.markingCode.isNotBlank()) {
-                        "Код: ${product.barcode}"
-                    } else {
-                        "Штрихкод: ${product.barcode}"
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val trimmed = name.trim()
+                        val kind = ProduceHelper.detectKind(trimmed)
+                        if (kind != null) {
+                            produceKind = kind
+                        } else {
+                            onConfirm(expiry, quantity, trimmed, null)
+                        }
                     },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(onClick = { showDate = true }) {
-                    Text("Срок годности: ${expiry.format(formatter)}")
-                }
-                Text(
-                    if (product.suggestedExpiry != null) {
-                        "Срок подставлен из маркировки — при необходимости поправьте."
-                    } else {
-                        "Можно сфотографировать дату на упаковке и выбрать её вручную."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    enabled = name.isNotBlank()
+                ) { Text("В холодильник") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text("Отмена") }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(expiry, quantity, name) },
-                enabled = name.isNotBlank()
-            ) { Text("В холодильник") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
-        }
-    )
+        )
+    }
+
+    produceKind?.let { kind ->
+        ProduceDetailsDialog(
+            kind = kind,
+            onDismiss = { produceKind = null },
+            onConfirm = { produceName, weight ->
+                onConfirm(expiry, weight, produceName, kind.emoji)
+            }
+        )
+    }
 
     if (showDate) {
         ExpiryDatePicker(

@@ -145,7 +145,9 @@ private fun SmartPantryRoot(
                     items = state.pantry,
                     onScanClick = { navController.navigate(Routes.SCANNER) },
                     onDelete = vm::deleteItem,
-                    onAddManual = vm::addManualProduct
+                    onAddManual = { name, expiry, quantity, imageHint ->
+                        vm.addManualProduct(name, expiry, quantity, imageHint)
+                    }
                 )
             }
             composable(Routes.COOKABLE) {
@@ -164,8 +166,8 @@ private fun SmartPantryRoot(
                     pendingProduct = state.pendingProduct,
                     onBack = { navController.popBackStack() },
                     onBarcode = vm::onBarcodeScanned,
-                    onConfirm = { date, qty, name ->
-                        vm.confirmPendingProduct(date, qty, name)
+                    onConfirm = { date, qty, name, imageHint ->
+                        vm.confirmPendingProduct(date, qty, name, imageHint)
                         navController.popBackStack()
                     },
                     onClearPending = vm::clearPendingProduct

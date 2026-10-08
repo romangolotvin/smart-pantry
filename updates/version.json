@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
-  "notes": "Несколько баз штрихкодов: Open Food Facts RU/World, Beauty/Products Facts, Честный знак (EAN), UPC Item DB — берём первое найденное название.",
+  "version": "1.2.1",
+  "notes": "Если в названии «овощ» или «фрукт» — окно с названием и весом перед добавлением.",
   "android": "https://github.com/romangolotvin/smart-pantry/releases/latest/download/SmartPantry.apk"
 }

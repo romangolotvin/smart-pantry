@@ -41,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smartpantry.app.data.ProduceHelper
+import com.smartpantry.app.data.ProduceKind
 import com.smartpantry.app.data.model.PantryItem
 import com.smartpantry.app.ui.components.ExpiryBadge
 import com.smartpantry.app.ui.components.ScreenHeader
@@ -55,7 +57,7 @@ fun PantryScreen(
     items: List<PantryItem>,
     onScanClick: () -> Unit,
     onDelete: (PantryItem) -> Unit,
-    onAddManual: (String, LocalDate) -> Unit
+    onAddManual: (name: String, expiry: LocalDate, quantity: String, imageHint: String) -> Unit
 ) {
     var showManual by remember { mutableStateOf(false) }
 
@@ -126,8 +128,8 @@ fun PantryScreen(
     if (showManual) {
         ManualProductDialog(
             onDismiss = { showManual = false },
-            onConfirm = { name, date ->
-                onAddManual(name, date)
+            onConfirm = { name, date, quantity, imageHint ->
+                onAddManual(name, date, quantity, imageHint)
                 showManual = false
             }
         )
@@ -159,7 +161,7 @@ private fun PantryItemRow(item: PantryItem, onDelete: () -> Unit) {
                     )
                 }
                 Text(
-                    "до ${item.expiryDate().format(formatter)} · шт: ${item.quantity}",
+                    "до ${item.expiryDate().format(formatter)} · ${formatQuantityLabel(item.quantity)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -177,42 +179,70 @@ private fun PantryItemRow(item: PantryItem, onDelete: () -> Unit) {
 @Composable
 fun ManualProductDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, LocalDate) -> Unit,
+    onConfirm: (name: String, expiry: LocalDate, quantity: String, imageHint: String) -> Unit,
     initialName: String = ""
 ) {
     var name by remember { mutableStateOf(initialName) }
     var showDate by remember { mutableStateOf(false) }
+    var produceKind by remember { mutableStateOf<ProduceKind?>(null) }
     var expiry by remember { mutableStateOf(LocalDate.now().plusDays(7)) }
     val formatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Добавить продукт") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Название") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
-                TextButton(onClick = { showDate = true }) {
-                    Text("Срок годности: ${expiry.format(formatter)}")
+    if (produceKind == null) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Добавить продукт") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Название") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Напишите «овощ» или «фрукт» — откроется окно с названием и весом.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    TextButton(onClick = { showDate = true }) {
+                        Text("Срок годности: ${expiry.format(formatter)}")
+                    }
                 }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val trimmed = name.trim()
+                        if (trimmed.isBlank()) return@TextButton
+                        val kind = ProduceHelper.detectKind(trimmed)
+                        if (kind != null) {
+                            produceKind = kind
+                        } else {
+                            onConfirm(trimmed, expiry, "1", "🛒")
+                        }
+                    },
+                    enabled = name.isNotBlank()
+                ) { Text("Добавить") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text("Отмена") }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { if (name.isNotBlank()) onConfirm(name.trim(), expiry) },
-                enabled = name.isNotBlank()
-            ) { Text("Сохранить") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
-        }
-    )
+        )
+    }
+
+    produceKind?.let { kind ->
+        ProduceDetailsDialog(
+            kind = kind,
+            onDismiss = { produceKind = null },
+            onConfirm = { produceName, weight ->
+                onConfirm(produceName, expiry, weight, kind.emoji)
+            }
+        )
+    }
 
     if (showDate) {
         ExpiryDatePicker(
@@ -223,6 +253,63 @@ fun ManualProductDialog(
                 showDate = false
             }
         )
+    }
+}
+
+@Composable
+fun ProduceDetailsDialog(
+    kind: ProduceKind,
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, weight: String) -> Unit
+) {
+    var produceName by remember { mutableStateOf("") }
+    var weight by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(kind.title) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = produceName,
+                    onValueChange = { produceName = it },
+                    label = { Text(kind.nameHint) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = weight,
+                    onValueChange = { weight = it.filter { ch -> ch.isDigit() || ch == ',' || ch == '.' } },
+                    label = { Text("Вес, г") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Например: 500") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val n = produceName.trim()
+                    val w = ProduceHelper.formatWeight(weight)
+                    if (n.isNotBlank() && w.isNotBlank()) onConfirm(n, w)
+                },
+                enabled = produceName.isNotBlank() && weight.isNotBlank()
+            ) { Text("Сохранить") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Назад") }
+        }
+    )
+}
+
+private fun formatQuantityLabel(quantity: String): String {
+    val q = quantity.trim()
+    val lower = q.lowercase()
+    return when {
+        lower.contains("г") || lower.contains("кг") || lower.contains("мл") -> q
+        else -> "шт: $q"
     }
 }
 
